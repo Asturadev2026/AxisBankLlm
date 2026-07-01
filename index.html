@@ -566,7 +566,7 @@ class Component extends DCLogic {
   runQuery(query, forcedIntent){
     this.clearTimers();
     const intent = forcedIntent || this.intentOf(query);
-    const deterministic = intent.indexOf('blocked_') === 0 || intent === 'comparison';
+    const deterministic = intent.indexOf('blocked_') === 0;
     let ans;
     if(deterministic){
       ans = this.buildAnswer(intent);
