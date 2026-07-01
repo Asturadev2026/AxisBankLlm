@@ -685,7 +685,7 @@ class Component extends DCLogic {
   }
 
   escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  inlineMd(s){ return s.replace(/\*\*([^*]+)\*\*/g,'<strong style="font-weight:700">$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>'); }
+  inlineMd(s){ return s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:var(--accent,#97144D);font-weight:700;text-decoration:underline">$1 &rsaquo;</a>').replace(/\*\*([^*]+)\*\*/g,'<strong style="font-weight:700">$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>'); }
   mdToHtml(text){
     if(!text) return '';
     const lines = this.escHtml(text).split('\n');

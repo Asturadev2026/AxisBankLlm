@@ -5,6 +5,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { GROUNDING } = require('./axis-knowledge.js');
 
 const PORT = process.env.PORT || 5050;
 const ROOT = __dirname;
@@ -21,11 +22,12 @@ async function handleChat(req, res) {
   req.on('end', async () => {
     let messages = [];
     try { messages = (JSON.parse(raw || '{}').messages) || []; } catch {}
+    const grounded = [{ role: 'system', content: GROUNDING }, ...messages];
     try {
       const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: 'gpt-4o', messages, temperature: 0.5, max_tokens: 1400 }),
+        body: JSON.stringify({ model: 'gpt-4o', messages: grounded, temperature: 0.5, max_tokens: 1400 }),
       });
       if (!upstream.ok) {
         const detail = await upstream.text();
