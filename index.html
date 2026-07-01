@@ -840,7 +840,10 @@ class Component extends DCLogic {
       const streaming = (isStream || isLive) && turn.phase === 'streaming';
       const answerHtml = isLive ? { __html: this.mdToHtml(streamedText) } : null;
       const showAnswer = !searching;
-      const actions = (ans.actions||[]).map(a=>({ label:a.label, primary:!!a.primary, btnStyle: a.primary?primaryBtn:ghostBtn, onPick: a.goes ? (()=>this.runQuery(a.goes, a.goesIntent)) : (()=>this.goHome()) }));
+      // An action with an explicit target runs it; otherwise treat the button as a
+      // follow-up question (ask its label). runQuery appends a turn, so conversation
+      // context is preserved — never reset to home from an action.
+      const actions = (ans.actions||[]).map(a=>({ label:a.label, primary:!!a.primary, btnStyle: a.primary?primaryBtn:ghostBtn, onPick: a.goes ? (()=>this.runQuery(a.goes, a.goesIntent)) : (()=>this.runQuery(a.label)) }));
       return {
         query: turn.query, ans, trace, showTrace: searching, showAnswer,
         isLive, isStream, isStructured: ans.kind==='structured', isComparison: ans.kind==='comparison', isBlocked: ans.kind==='blocked',
