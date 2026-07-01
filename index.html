@@ -566,7 +566,9 @@ class Component extends DCLogic {
   runQuery(query, forcedIntent){
     this.clearTimers();
     const intent = forcedIntent || this.intentOf(query);
-    const deterministic = intent.indexOf('blocked_') === 0;
+    // Only credential requests get the hardcoded hard-refuse card; account/advice/
+    // approval questions now flow to the grounded model for a consistent, helpful answer.
+    const deterministic = intent === 'blocked_security';
     let ans;
     if(deterministic){
       ans = this.buildAnswer(intent);

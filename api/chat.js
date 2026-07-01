@@ -3,7 +3,7 @@
 // The API key is read from the OPENAI_API_KEY environment variable (set it in
 // Vercel: Project -> Settings -> Environment Variables). It never reaches the browser.
 
-import { buildGrounding } from '../axis-knowledge.js';
+import { buildGrounding, credentialRefusal } from '../axis-knowledge.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,10 +25,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'no-messages' });
   }
 
-  // Retrieve KB chunks relevant to the latest question, then ground the answer in them.
-  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
-  const grounding = buildGrounding(lastUser ? lastUser.content : '');
-  const grounded = [{ role: 'system', content: grounding }, ...messages];
+  // Hard refuse credential-sharing requests before spending an LLM call.
+  const userMsgs = messages.filter((m) => m.role === 'user');
+  const lastUser = userMsgs[userMsgs.length - 1];
+  const refusal = credentialRefusal(lastUser ? lastUser.content : '');
+  if (refusal) return res.status(200).json({ text: refusal });
+
+  // Retrieve using the last two user turns so short follow-ups keep their context.
+  const retrievalQuery = userMsgs.slice(-2).map((m) => m.content).join(' ');
+  const grounded = [{ role: 'system', content: buildGrounding(retrievalQuery) }, ...messages];
 
   try {
     const upstream = await fetch('https://api.openai.com/v1/chat/completions', {

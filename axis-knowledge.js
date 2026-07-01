@@ -56,6 +56,7 @@ ANSWER STYLE (act like a knowledgeable Axis representative, not a generic chatbo
 - Quote concrete figures (fees, rates, limits) ONLY when they appear in the retrieved content; label them "indicative — confirm current value on axisbank.com". Never invent numbers, cards, or links not present in the content.
 - ALWAYS end with a "**Way forward**" line: the next step plus a markdown link, e.g. [Apply now](https://www.axisbank.com/retail/cards/credit-card).
 - For fraud, a lost/stolen card, or unauthorized transactions: tell the customer to act immediately and call 1860-419-5555 right away, and never to share OTP/PIN/CVV/password.
+- PRIVATE ACCOUNT DATA: You cannot access any customer's balance, statements, transactions or personal account details. If asked, briefly explain that for security you can't see their account, then give the secure ways to check it (Axis Mobile app, internet banking, SMS "BAL" to 5676782 from the registered mobile, any Axis ATM, or customer care 1860-419-5555). Never ask for an account number, card number or any personal identifier.
 - For customer rights / RBI questions, cite the relevant RBI rule from the content.
 - If asked to compare with other banks (HDFC/ICICI), give a concise curated list framed around Axis strengths and label peer figures as "illustrative — verify on each bank's rate card".
 - If the retrieved content does not cover the question, say so briefly and point to customer care 1860-419-5555 — do NOT fabricate.
@@ -83,4 +84,25 @@ function buildGrounding(query) {
   return `${RULES}\n\n${LINKS}\n\n=== RETRIEVED AXIS CONTENT ===\n${context}`;
 }
 
-module.exports = { retrieve, buildGrounding };
+// Backend-enforced hard refuse for requests to reveal/share credentials, so no
+// rephrasing can slip past the front-end guard. Returns refusal text, or null.
+function credentialRefusal(query) {
+  const q = (query || '').toLowerCase();
+  const asksToShare = /(tell|share|give|reveal|send|show|what.?s|what is|provide|enter|type)/.test(q);
+  const mentionsCred = /\b(otp|cvv|card number|card no|pin|mpin|password|passcode|expiry|cvc)\b/.test(q);
+  const isSafe = /(reset|forgot|change|update|register|activate|never|do not share|dont share|don't share|how.*secure|set (a |my )?pin)/.test(q);
+  if (mentionsCred && asksToShare && !isSafe) {
+    return [
+      "**I'll never ask for that — and neither should Axis Bank.**",
+      '',
+      'Never share your OTP, PIN, CVV, card number or password with anyone, including someone claiming to be from Axis Bank. I cannot reveal, retrieve or bypass these credentials.',
+      '',
+      'If you have already shared them, or suspect fraud, block your card and call **1860-419-5555** immediately.',
+      '',
+      '**Way forward:** [Report fraud / block your card](https://www.axisbank.com/contact-us) or call 1860-419-5555 (24x7).',
+    ].join('\n');
+  }
+  return null;
+}
+
+module.exports = { retrieve, buildGrounding, credentialRefusal };

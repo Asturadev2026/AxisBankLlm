@@ -5,7 +5,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { buildGrounding } = require('./axis-knowledge.js');
+const { buildGrounding, credentialRefusal } = require('./axis-knowledge.js');
 
 const PORT = process.env.PORT || 5050;
 const ROOT = __dirname;
@@ -22,8 +22,15 @@ async function handleChat(req, res) {
   req.on('end', async () => {
     let messages = [];
     try { messages = (JSON.parse(raw || '{}').messages) || []; } catch {}
-    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
-    const grounded = [{ role: 'system', content: buildGrounding(lastUser ? lastUser.content : '') }, ...messages];
+    const userMsgs = messages.filter((m) => m.role === 'user');
+    const lastUser = userMsgs[userMsgs.length - 1];
+    const refusal = credentialRefusal(lastUser ? lastUser.content : '');
+    if (refusal) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ text: refusal }));
+    }
+    const retrievalQuery = userMsgs.slice(-2).map((m) => m.content).join(' ');
+    const grounded = [{ role: 'system', content: buildGrounding(retrievalQuery) }, ...messages];
     try {
       const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
