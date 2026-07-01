@@ -31,9 +31,10 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',   // change if you want a different model
-        messages,               // app already sends [{ role: 'user', content: '...' }]
-        temperature: 0.4,
+        model: 'gpt-4o',        // stronger model for detailed answers (change if you like)
+        messages,               // app sends [{system}, ...history, {user}]
+        temperature: 0.5,
+        max_tokens: 1400,       // allow long, thorough answers
       }),
     });
 
