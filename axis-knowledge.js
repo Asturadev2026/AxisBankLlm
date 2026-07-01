@@ -84,12 +84,21 @@ function buildGrounding(query) {
   return `${RULES}\n\n${LINKS}\n\n=== RETRIEVED AXIS CONTENT ===\n${context}`;
 }
 
+// The front-end wraps the current turn as "...Customer question: <q>\n\nWrite the
+// answer in <lang>." and may prepend injected context. Pull out just the question
+// so guards/retrieval never inspect the injected grounding text.
+function extractQuestion(content) {
+  const m = /Customer question:\s*([\s\S]*?)(?:\n\nWrite the answer in|$)/i.exec(content || '');
+  return (m ? m[1] : content || '').trim();
+}
+
 // Backend-enforced hard refuse for requests to reveal/share credentials, so no
 // rephrasing can slip past the front-end guard. Returns refusal text, or null.
 function credentialRefusal(query) {
-  const q = (query || '').toLowerCase();
+  const q = extractQuestion(query).toLowerCase();
   const asksToShare = /(tell|share|give|reveal|send|show|what.?s|what is|provide|enter|type)/.test(q);
-  const mentionsCred = /\b(otp|cvv|card number|card no|pin|mpin|password|passcode|expiry|cvc)\b/.test(q);
+  // "pin code" (postal) must NOT count as a card PIN.
+  const mentionsCred = /\b(otp|cvv|card number|card no|mpin|password|passcode|expiry|cvc)\b/.test(q) || /\bpin\b(?!\s*code)/.test(q);
   const isSafe = /(reset|forgot|change|update|register|activate|never|do not share|dont share|don't share|how.*secure|set (a |my )?pin)/.test(q);
   if (mentionsCred && asksToShare && !isSafe) {
     return [
@@ -105,4 +114,4 @@ function credentialRefusal(query) {
   return null;
 }
 
-module.exports = { retrieve, buildGrounding, credentialRefusal };
+module.exports = { retrieve, buildGrounding, credentialRefusal, extractQuestion };

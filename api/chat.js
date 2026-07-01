@@ -3,7 +3,7 @@
 // The API key is read from the OPENAI_API_KEY environment variable (set it in
 // Vercel: Project -> Settings -> Environment Variables). It never reaches the browser.
 
-import { buildGrounding, credentialRefusal } from '../axis-knowledge.js';
+import { buildGrounding, credentialRefusal, extractQuestion } from '../axis-knowledge.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   if (refusal) return res.status(200).json({ text: refusal });
 
   // Retrieve using the last two user turns so short follow-ups keep their context.
-  const retrievalQuery = userMsgs.slice(-2).map((m) => m.content).join(' ');
+  const retrievalQuery = userMsgs.slice(-2).map((m) => extractQuestion(m.content)).join(' ');
   const grounded = [{ role: 'system', content: buildGrounding(retrievalQuery) }, ...messages];
 
   try {
