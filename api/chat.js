@@ -3,7 +3,7 @@
 // The API key is read from the OPENAI_API_KEY environment variable (set it in
 // Vercel: Project -> Settings -> Environment Variables). It never reaches the browser.
 
-import { GROUNDING } from '../axis-knowledge.js';
+import { buildGrounding } from '../axis-knowledge.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,8 +25,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'no-messages' });
   }
 
-  // Inject the grounding/format system message right after the app's own system prompt.
-  const grounded = [{ role: 'system', content: GROUNDING }, ...messages];
+  // Retrieve KB chunks relevant to the latest question, then ground the answer in them.
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  const grounding = buildGrounding(lastUser ? lastUser.content : '');
+  const grounded = [{ role: 'system', content: grounding }, ...messages];
 
   try {
     const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
